@@ -14,11 +14,12 @@ export async function connectDatabase() {
 
   try {
     // Create postgres connection
+    // Neon requires SSL in all environments
     sql = postgres(databaseUrl, {
       max: env.NODE_ENV === 'production' ? 20 : 5,
       idle_timeout: 20,
       connect_timeout: 10,
-      ssl: env.NODE_ENV === 'production' ? 'require' : false,
+      ssl: 'require',
     });
 
     // Create drizzle instance

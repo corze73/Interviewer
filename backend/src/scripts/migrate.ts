@@ -1,10 +1,14 @@
 #!/usr/bin/env tsx
 
+import dotenv from 'dotenv';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
 import postgres from 'postgres';
 import { getDatabaseUrl } from '../utils/env';
 import { logger } from '../utils/logger';
+
+// Load environment variables
+dotenv.config();
 
 async function runMigrations() {
   const databaseUrl = getDatabaseUrl();
