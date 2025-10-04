@@ -1,6 +1,6 @@
 import { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 import { getDatabase } from './lib/database';
-import { users } from '../../backend/src/database/schema';
+import { users } from './lib/schema';
 import { eq } from 'drizzle-orm';
 
 export const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
