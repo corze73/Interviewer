@@ -1,0 +1,58 @@
+[build]
+  base = "frontend"
+  publish = "frontend/dist"
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+
+# Build settings for the frontend
+[[plugins]]
+  package = "@netlify/plugin-sitemap"
+
+# Redirect rules for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+
+# Cache static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "max-age=31536000, immutable"
+
+# PWA headers
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]    
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Environment-specific builds
+[context.production.environment]
+  VITE_API_URL = "https://your-backend-api.herokuapp.com"
+  VITE_WS_URL = "wss://your-backend-api.herokuapp.com"
+
+[context.deploy-preview.environment]
+  VITE_API_URL = "https://staging-backend-api.herokuapp.com"
+  VITE_WS_URL = "wss://staging-backend-api.herokuapp.com"
+
+[context.branch-deploy.environment]
+  VITE_API_URL = "http://localhost:3001"
+  VITE_WS_URL = "ws://localhost:3001"

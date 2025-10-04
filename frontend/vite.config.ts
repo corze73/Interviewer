@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     VitePWA({
@@ -88,4 +88,4 @@ export default defineConfig({
     globals: true,
     setupFiles: './src/test/setup.ts'
   }
-});
+}));
