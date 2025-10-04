@@ -10,6 +10,7 @@
   ],
   "scripts": {
     "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:netlify": "netlify dev",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
     "build": "npm run build:shared && npm run build:frontend && npm run build:backend",
@@ -64,5 +65,11 @@
   "bugs": {
     "url": "https://github.com/corze73/Interviewer/issues"
   },
-  "homepage": "https://github.com/corze73/Interviewer#readme"
+  "homepage": "https://github.com/corze73/Interviewer#readme",
+  "dependencies": {
+    "@netlify/functions": "^4.2.7",
+    "drizzle-orm": "^0.44.6",
+    "postgres": "^3.4.7",
+    "serverless-http": "^4.0.0"
+  }
 }
