@@ -4,9 +4,8 @@ export function Home() {
   const navigate = useNavigate();
 
   const handleStartInterview = () => {
-    // Generate a new session ID
-    const sessionId = Date.now().toString();
-    navigate(`/interview/${sessionId}`);
+    // Navigate to job setup first
+    navigate('/setup');
   };
 
   return (
