@@ -8,6 +8,12 @@
     <meta name="description" content="Full-Realism Human-AI Interviewer with photoreal avatars" />
     <meta name="theme-color" content="#ffffff" />
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- Permissions Policy for microphone access -->
+    <meta http-equiv="Permissions-Policy" content="microphone=*" />
+    
+    <!-- Feature Policy for older browsers -->
+    <meta http-equiv="Feature-Policy" content="microphone 'self'" />
   </head>
   <body>
     <div id="root"></div>

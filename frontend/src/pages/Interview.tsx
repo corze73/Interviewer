@@ -31,7 +31,8 @@ export function Interview() {
     startRecording, 
     stopRecording, 
     error: micError, 
-    audioLevel 
+    audioLevel,
+    requestMicrophonePermission
   } = useMicrophone();
   
   const { 
@@ -214,18 +215,44 @@ export function Interview() {
                   <p className="text-gray-400 text-xs">
                     To fix this issue:
                   </p>
-                  <ul className="text-xs text-gray-400 text-left space-y-1">
-                    <li>1. Click the microphone icon 🎤 in your browser's address bar</li>
-                    <li>2. Select "Allow" for microphone access</li>
-                    <li>3. Refresh this page and try again</li>
-                  </ul>
+                  <div className="text-xs text-gray-400 text-left space-y-2">
+                    <div>
+                      <p className="font-semibold text-gray-300">Chrome/Edge:</p>
+                      <ul className="ml-2 space-y-1">
+                        <li>• Click the camera/microphone icon in the address bar</li>
+                        <li>• Select "Always allow" for microphone</li>
+                        <li>• Click "Done" and refresh the page</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-300">Firefox:</p>
+                      <ul className="ml-2 space-y-1">
+                        <li>• Click the microphone icon in the address bar</li>
+                        <li>• Remove the block and select "Allow"</li>
+                        <li>• Refresh the page</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-300">Safari:</p>
+                      <ul className="ml-2 space-y-1">
+                        <li>• Go to Safari → Settings → Websites → Microphone</li>
+                        <li>• Set this site to "Allow"</li>
+                        <li>• Refresh the page</li>
+                      </ul>
+                    </div>
+                  </div>
                   <button
                     onClick={async () => {
                       try {
-                        await navigator.mediaDevices.getUserMedia({ audio: true });
-                        window.location.reload();
+                        const success = await requestMicrophonePermission();
+                        if (success) {
+                          window.location.reload();
+                        } else {
+                          alert('Please allow microphone access in your browser settings and try again.');
+                        }
                       } catch (err) {
                         console.error('Permission request failed:', err);
+                        alert('Failed to request permissions. Please check your browser settings.');
                       }
                     }}
                     className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"

@@ -7,6 +7,7 @@ interface UseMicrophoneReturn {
   stopRecording: () => void;
   error: string | null;
   audioLevel: number;
+  requestMicrophonePermission: () => Promise<boolean>;
 }
 
 export function useMicrophone(): UseMicrophoneReturn {
@@ -19,13 +20,45 @@ export function useMicrophone(): UseMicrophoneReturn {
   
   const { isRecording, setRecording, addTranscript } = useInterviewStore();
 
+  const requestMicrophonePermission = useCallback(async (): Promise<boolean> => {
+    try {
+      // Check if we're in a secure context (HTTPS or localhost)
+      if (!window.isSecureContext) {
+        throw new Error('Microphone access requires HTTPS or localhost. Please use a secure connection.');
+      }
+
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support microphone access. Please use a modern browser like Chrome, Firefox, or Safari.');
+      }
+
+      // Check permissions first without requesting media
+      if ('permissions' in navigator) {
+        const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        if (permission.state === 'denied') {
+          throw new Error('Microphone access is permanently denied. Please reset permissions in your browser settings.');
+        }
+      }
+
+      // Test microphone access with minimal constraints first
+      const testStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      testStream.getTracks().forEach(track => track.stop()); // Clean up test stream
+      
+      return true;
+    } catch (err) {
+      console.error('Permission check failed:', err);
+      return false;
+    }
+  }, []);
+
   const startRecording = useCallback(async () => {
     try {
       setError(null);
       
-      // Check if getUserMedia is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Your browser does not support microphone access. Please use a modern browser like Chrome, Firefox, or Safari.');
+      // First check if we can access microphone
+      const hasPermission = await requestMicrophonePermission();
+      if (!hasPermission) {
+        throw new Error('Microphone permission check failed. Please allow microphone access and try again.');
       }
       
       // Request microphone access with better error handling
@@ -33,6 +66,7 @@ export function useMicrophone(): UseMicrophoneReturn {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
+          autoGainControl: true,
           sampleRate: 44100
         } 
       });
@@ -135,7 +169,8 @@ export function useMicrophone(): UseMicrophoneReturn {
     startRecording,
     stopRecording,
     error,
-    audioLevel
+    audioLevel,
+    requestMicrophonePermission
   };
 }
 
