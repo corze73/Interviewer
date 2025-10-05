@@ -67,11 +67,16 @@ export function Interview() {
   }, [urlSessionId]);
 
   const toggleRecording = () => {
+    console.log('Toggle recording clicked, current state:', isRecording);
     if (isRecording) {
+      console.log('Stopping recording and processing response');
       stopRecording();
-      // Trigger response processing when user manually stops recording
-      setShouldProcessResponse(true);
+      // Small delay to ensure transcript is captured
+      setTimeout(() => {
+        setShouldProcessResponse(true);
+      }, 500);
     } else {
+      console.log('Starting recording');
       startRecording();
     }
   };
@@ -102,13 +107,18 @@ export function Interview() {
   const [shouldProcessResponse, setShouldProcessResponse] = useState(false);
   
   useEffect(() => {
+    console.log('Processing effect:', { shouldProcessResponse, transcriptLength: transcript.length });
     if (shouldProcessResponse && transcript.length > 0) {
       const latestResponse = transcript[transcript.length - 1];
+      console.log('Latest response to process:', latestResponse);
       // Only process if the response has some meaningful content
       if (latestResponse.trim().length > 2) {
         console.log('Processing user response:', latestResponse);
         processUserResponse(latestResponse);
         setShouldProcessResponse(false); // Reset the flag
+      } else {
+        console.log('Response too short, skipping processing');
+        setShouldProcessResponse(false);
       }
     }
   }, [transcript, processUserResponse, shouldProcessResponse]);
