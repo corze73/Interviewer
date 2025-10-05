@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { useInterviewStore } from '../store/interview';
 
+interface JobData {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
+  skills: string[];
+}
+
 export function Interview() {
+  const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
   const { 
-    sessionId, 
     isConnected, 
     isRecording, 
     currentQuestion, 
@@ -12,23 +20,69 @@ export function Interview() {
   } = useInterviewStore();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [jobData, setJobData] = useState<JobData | null>(null);
+  const [isInterviewStarted, setIsInterviewStarted] = useState(false);
 
   useEffect(() => {
-    // Simulate loading time
-    const timer = setTimeout(() => setIsLoading(false), 2000);
+    // Load job data from localStorage
+    if (urlSessionId) {
+      const storedJobData = localStorage.getItem(`interview-${urlSessionId}`);
+      if (storedJobData) {
+        try {
+          const parsedJobData = JSON.parse(storedJobData);
+          setJobData(parsedJobData);
+        } catch (error) {
+          console.error('Failed to parse job data:', error);
+        }
+      }
+    }
+
+    // Simulate connection and interview initialization
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+      setIsInterviewStarted(true);
+    }, 3000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [urlSessionId]);
 
   const toggleRecording = () => {
     setRecording(!isRecording);
   };
+
+  const startInterview = () => {
+    if (jobData && !currentQuestion) {
+      // Generate a job-specific opening question
+      const openingQuestion = `Hi! I'm excited to interview you for the ${jobData.jobTitle} position${jobData.company ? ` at ${jobData.company}` : ''}. Let's start with a simple question: Can you tell me about yourself and why you're interested in this role?`;
+      
+      // In a real app, this would be handled by the interview store
+      // For now, we'll just show that the interview is ready to start
+      console.log('Starting interview with question:', openingQuestion);
+    }
+  };
+
+  // Auto-start interview when job data is loaded and interview is initialized
+  useEffect(() => {
+    if (jobData && isInterviewStarted && !currentQuestion) {
+      const timer = setTimeout(() => {
+        startInterview();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [jobData, isInterviewStarted, currentQuestion]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-lg text-gray-600">Initializing interview session...</p>
+          <p className="text-lg text-gray-600">Loading job context and initializing AI interviewer...</p>
+          {jobData && (
+            <div className="mt-4 p-4 bg-gray-100 rounded-lg max-w-md">
+              <p className="text-sm text-gray-600">Preparing interview for:</p>
+              <p className="font-semibold text-gray-800">{jobData.jobTitle}</p>
+              {jobData.company && <p className="text-sm text-gray-600">at {jobData.company}</p>}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -48,8 +102,15 @@ export function Interview() {
                 </div>
                 <p className="text-gray-300">AI Interviewer Avatar</p>
                 <p className="text-sm text-gray-500">
-                  {isConnected ? 'Connected' : 'Connecting...'}
+                  {!isInterviewStarted ? 'Initializing...' : 
+                   !jobData ? 'Loading job context...' :
+                   isConnected ? 'Ready to interview' : 'Connecting...'}
                 </p>
+                {jobData && isInterviewStarted && (
+                  <p className="text-xs text-green-400 mt-1">
+                    ✅ Ready for {jobData.jobTitle} interview
+                  </p>
+                )}
               </div>
             </div>
             
@@ -82,8 +143,19 @@ export function Interview() {
             <div className="flex-1 overflow-y-auto space-y-3 mb-4">
               {transcript.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
-                  <p>No transcript yet.</p>
-                  <p className="text-sm">Start recording to begin the interview.</p>
+                  {!isInterviewStarted ? (
+                    <p>Initializing interview session...</p>
+                  ) : !jobData ? (
+                    <p>Loading job context...</p>
+                  ) : (
+                    <div>
+                      <p className="text-green-400 mb-2">🎤 Interview Ready!</p>
+                      <p className="text-sm">Click "Start Recording" to begin your {jobData.jobTitle} interview.</p>
+                      {jobData.company && (
+                        <p className="text-xs text-gray-400 mt-1">Position at {jobData.company}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : (
                 transcript.map((text, index) => (
@@ -95,11 +167,33 @@ export function Interview() {
               )}
             </div>
             
+            {/* Job Context */}
+            {jobData && (
+              <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                <p className="text-sm text-gray-300 mb-2">Interview Context:</p>
+                <p className="text-white font-semibold">{jobData.jobTitle}</p>
+                {jobData.company && <p className="text-gray-300 text-sm">{jobData.company}</p>}
+                {jobData.skills.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-400 mb-1">Key Skills:</p>
+                    <div className="flex flex-wrap gap-1">
+                      {jobData.skills.map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-900/50 text-blue-300 text-xs rounded">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Session Info */}
             <div className="text-sm text-gray-400 border-t border-gray-700 pt-4">
-              <p>Session ID: {sessionId || 'Not connected'}</p>
+              <p>Session ID: {urlSessionId || 'Not connected'}</p>
               <p>Status: {isRecording ? 'Recording' : 'Idle'}</p>
               <p>Transcript Length: {transcript.length} messages</p>
+              <p>Interview Status: {isInterviewStarted ? 'Ready' : 'Initializing'}</p>
             </div>
           </div>
         </div>
