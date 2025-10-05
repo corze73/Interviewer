@@ -105,6 +105,10 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
       recognition.onend = () => {
         setIsListening(false);
         console.log('Speech recognition ended');
+        
+        // Clear the current transcript when recognition ends
+        // This ensures each response is captured separately
+        setTranscript('');
       };
 
       // Start recognition

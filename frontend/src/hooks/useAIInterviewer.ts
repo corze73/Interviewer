@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useInterviewStore } from '../store/interview';
 import { useTextToSpeech } from './useTextToSpeech';
 
@@ -26,6 +26,7 @@ export function useAIInterviewer(jobData: JobData | null) {
   } = useInterviewStore();
   
   const { speak, isSpeaking } = useTextToSpeech();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const generateInitialQuestion = useCallback(async () => {
     if (!jobData) return;
@@ -149,9 +150,14 @@ export function useAIInterviewer(jobData: JobData | null) {
     // Use the transcript array to get all previous responses
     const candidateResponses = [...transcript, response];
     
+    // Set processing state
+    setIsProcessing(true);
+    
     // Add processing delay for better UX
     setTimeout(() => {
-      generateFollowUpQuestion(response, candidateResponses);
+      generateFollowUpQuestion(response, candidateResponses).finally(() => {
+        setIsProcessing(false);
+      });
     }, 2000 + Math.random() * 1000); // 2-3 second delay
   }, [generateFollowUpQuestion, transcript]);
 
@@ -159,7 +165,8 @@ export function useAIInterviewer(jobData: JobData | null) {
     startInterview,
     processUserResponse,
     currentQuestion,
-    isSpeaking
+    isSpeaking,
+    isProcessing
   };
 }
 
