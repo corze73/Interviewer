@@ -21,6 +21,7 @@ import sessionRoutes from './routes/session';
 import reportRoutes from './routes/report';
 import userRoutes from './routes/user';
 import adminRoutes from './routes/admin';
+import { aiInterviewerRoutes } from './routes/ai-interviewer';
 
 // Load environment variables
 dotenv.config();
@@ -139,6 +140,7 @@ class Application {
     this.app.use('/api/report', reportRoutes);
     this.app.use('/api/user', authMiddleware, userRoutes);
     this.app.use('/api/admin', authMiddleware, adminRoutes);
+    this.app.use('/api/ai-interviewer', aiInterviewerRoutes);
 
     // WebSocket endpoint info
     this.app.get('/api/websocket-info', (req, res) => {

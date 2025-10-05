@@ -9,49 +9,132 @@ interface JobData {
   skills: string[];
 }
 
+interface AIResponse {
+  success: boolean;
+  question?: string;
+  questionNumber?: number;
+  error?: string;
+  details?: string;
+}
+
 export function useAIInterviewer(jobData: JobData | null) {
   const { 
     currentQuestion, 
     setCurrentQuestion, 
-    addAIResponse
+    addAIResponse,
+    transcript
   } = useInterviewStore();
   
   const { speak, isSpeaking } = useTextToSpeech();
 
-  const generateInitialQuestion = useCallback(() => {
+  const generateInitialQuestion = useCallback(async () => {
     if (!jobData) return;
 
-    const initialQuestions = [
-      `Hi! I'm excited to interview you for the ${jobData.jobTitle} position${jobData.company ? ` at ${jobData.company}` : ''}. Let's start with a simple question: Can you tell me about yourself and why you're interested in this role?`,
-      `Welcome! I see you're applying for the ${jobData.jobTitle} position. To get started, could you walk me through your background and what drew you to this opportunity?`,
-      `Hello! Thanks for taking the time to interview with us today. For the ${jobData.jobTitle} role, I'd love to hear about your experience and what makes you excited about this position.`
-    ];
+    try {
+      const response = await fetch('/api/ai-interviewer/generate-initial-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobTitle: jobData.jobTitle,
+          company: jobData.company,
+          jobDescription: jobData.jobDescription,
+          skills: jobData.skills,
+          candidateResponses: [],
+          currentQuestionNumber: 0,
+        }),
+      });
 
-    const question = initialQuestions[Math.floor(Math.random() * initialQuestions.length)];
-    setCurrentQuestion(question);
-    addAIResponse(question);
-    
-    // Speak the question
-    setTimeout(() => {
-      speak(question).catch(console.error);
-    }, 500); // Small delay to ensure UI is updated
-  }, [jobData, setCurrentQuestion, addAIResponse]);
+      const result: AIResponse = await response.json();
+      
+      if (result.success && result.question) {
+        setCurrentQuestion(result.question);
+        addAIResponse(result.question);
+        
+        // Speak the question
+        setTimeout(() => {
+          speak(result.question!).catch(console.error);
+        }, 500);
+      } else {
+        // Fallback to hardcoded question
+        const fallbackQuestion = `Hi! I'm excited to interview you for the ${jobData.jobTitle} position${jobData.company ? ` at ${jobData.company}` : ''}. Let's start with a simple question: Can you tell me about yourself and why you're interested in this role?`;
+        setCurrentQuestion(fallbackQuestion);
+        addAIResponse(fallbackQuestion);
+        
+        setTimeout(() => {
+          speak(fallbackQuestion).catch(console.error);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error generating AI question:', error);
+      // Fallback to hardcoded question
+      const fallbackQuestion = `Hi! I'm excited to interview you for the ${jobData.jobTitle} position${jobData.company ? ` at ${jobData.company}` : ''}. Let's start with a simple question: Can you tell me about yourself and why you're interested in this role?`;
+      setCurrentQuestion(fallbackQuestion);
+      addAIResponse(fallbackQuestion);
+      
+      setTimeout(() => {
+        speak(fallbackQuestion).catch(console.error);
+      }, 500);
+    }
+  }, [jobData, setCurrentQuestion, addAIResponse, speak]);
 
-  const generateFollowUpQuestion = useCallback((userResponse: string) => {
+  const generateFollowUpQuestion = useCallback(async (userResponse: string, candidateResponses: string[] = []) => {
     if (!jobData) return;
 
-    // Analyze the user's response and generate relevant follow-up questions
-    const followUpQuestions = generateContextualQuestions(userResponse, jobData);
-    const question = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
-    
-    setCurrentQuestion(question);
-    addAIResponse(question);
-    
-    // Speak the follow-up question
-    setTimeout(() => {
-      speak(question).catch(console.error);
-    }, 500);
-  }, [jobData, setCurrentQuestion, addAIResponse]);
+    try {
+      const response = await fetch('/api/ai-interviewer/generate-followup-question', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobTitle: jobData.jobTitle,
+          company: jobData.company,
+          jobDescription: jobData.jobDescription,
+          skills: jobData.skills,
+          candidateResponses,
+          currentQuestionNumber: candidateResponses.length,
+          userResponse,
+        }),
+      });
+
+      const result: AIResponse = await response.json();
+      
+      if (result.success && result.question) {
+        setCurrentQuestion(result.question);
+        addAIResponse(result.question);
+        
+        // Speak the follow-up question
+        setTimeout(() => {
+          speak(result.question!).catch(console.error);
+        }, 500);
+      } else {
+        // Fallback to contextual questions
+        const followUpQuestions = generateContextualQuestions(userResponse, jobData);
+        const question = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
+        
+        setCurrentQuestion(question);
+        addAIResponse(question);
+        
+        setTimeout(() => {
+          speak(question).catch(console.error);
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Error generating AI follow-up question:', error);
+      // Fallback to contextual questions
+      const followUpQuestions = generateContextualQuestions(userResponse, jobData);
+      const question = followUpQuestions[Math.floor(Math.random() * followUpQuestions.length)];
+      
+      setCurrentQuestion(question);
+      addAIResponse(question);
+      
+      setTimeout(() => {
+        speak(question).catch(console.error);
+      }, 500);
+    }
+  }, [jobData, setCurrentQuestion, addAIResponse, speak]);
 
   const startInterview = useCallback(() => {
     if (!currentQuestion && jobData) {
@@ -63,11 +146,14 @@ export function useAIInterviewer(jobData: JobData | null) {
   }, [currentQuestion, jobData, generateInitialQuestion]);
 
   const processUserResponse = useCallback((response: string) => {
-    // Simulate AI processing delay
+    // Use the transcript array to get all previous responses
+    const candidateResponses = [...transcript, response];
+    
+    // Add processing delay for better UX
     setTimeout(() => {
-      generateFollowUpQuestion(response);
+      generateFollowUpQuestion(response, candidateResponses);
     }, 2000 + Math.random() * 1000); // 2-3 second delay
-  }, [generateFollowUpQuestion]);
+  }, [generateFollowUpQuestion, transcript]);
 
   return {
     startInterview,
