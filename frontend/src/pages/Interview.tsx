@@ -17,7 +17,8 @@ export function Interview() {
     isConnected, 
     currentQuestion, 
     transcript, 
-    aiResponses
+    aiResponses,
+    setConnected
   } = useInterviewStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -56,6 +57,7 @@ export function Interview() {
     const timer = setTimeout(() => {
       setIsLoading(false);
       setIsInterviewStarted(true);
+      setConnected(true); // Set connection status
     }, 3000);
     return () => clearTimeout(timer);
   }, [urlSessionId]);
@@ -71,12 +73,24 @@ export function Interview() {
   // Auto-start interview when job data is loaded and interview is initialized
   useEffect(() => {
     if (jobData && isInterviewStarted && !currentQuestion) {
+      console.log('Initializing interview with job data:', jobData);
       const timer = setTimeout(() => {
         initializeInterview();
       }, 1000);
       return () => clearTimeout(timer);
     }
   }, [jobData, isInterviewStarted, currentQuestion, initializeInterview]);
+
+  // Force start interview when everything is ready (fallback)
+  useEffect(() => {
+    if (jobData && isInterviewStarted && !currentQuestion) {
+      const timer = setTimeout(() => {
+        console.log('Force starting interview - generating first question');
+        initializeInterview();
+      }, 3000); // Wait 3 seconds as backup
+      return () => clearTimeout(timer);
+    }
+  }, [jobData, isInterviewStarted]);
 
   // Process user responses when new transcript is added
   useEffect(() => {
@@ -214,8 +228,14 @@ export function Interview() {
                     <p>Loading job context...</p>
                   ) : !currentQuestion ? (
                     <div>
-                      <p className="text-blue-400 mb-2">🤖 AI is preparing your first question...</p>
-                      <p className="text-sm">Please wait while we analyze your job context.</p>
+                      <p className="text-blue-400 mb-4">🤖 Ready to start your interview!</p>
+                      <p className="text-sm mb-4">Click the button below to begin with your first question.</p>
+                      <button
+                        onClick={initializeInterview}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Start Interview
+                      </button>
                     </div>
                   ) : (
                     <div>
