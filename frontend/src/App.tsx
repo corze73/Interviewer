@@ -1,30 +1,56 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';import { BrowserRouter, Routes, Route } from 'react-router-dom';import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import { Home } from './pages/Home';
 
-import { Interview } from './pages/Interview';// Simple test components
+import { Interview } from './pages/Interview';import { Home } from './pages/Home';
 
-import { Report } from './pages/Report';function SimpleHome() {
+import { Report } from './pages/Report';
 
-import { NotFound } from './pages/NotFound';  return (
+import { NotFound } from './pages/NotFound';import { Interview } from './pages/Interview';// Simple test components
+
+import { Navigation } from './components/Navigation';
+
+import { useInterviewStore } from './store/interview';import { Report } from './pages/Report';function SimpleHome() {
+
+
+
+function App() {import { NotFound } from './pages/NotFound';  return (
+
+  const { isRecording } = useInterviewStore();
 
 import { Navigation } from './components/Navigation';    <div style={{ padding: '20px', textAlign: 'center' }}>
 
-import { useInterviewStore } from './store/interview';      <h1 style={{ color: 'black', fontSize: '32px' }}>🎯 AI Interviewer</h1>
+  return (
 
-      <p style={{ color: 'gray', fontSize: '18px', margin: '20px 0' }}>
+    <BrowserRouter>import { useInterviewStore } from './store/interview';      <h1 style={{ color: 'black', fontSize: '32px' }}>🎯 AI Interviewer</h1>
 
-function App() {        Welcome to the Full-Realism Human-AI Interviewer
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
 
-  const { isRecording } = useInterviewStore();      </p>
+        {!isRecording && <Navigation />}      <p style={{ color: 'gray', fontSize: '18px', margin: '20px 0' }}>
 
-      <button style={{ 
+        <Routes>
 
-  return (        backgroundColor: '#3b82f6', 
+          <Route path="/" element={<Home />} />function App() {        Welcome to the Full-Realism Human-AI Interviewer
 
-    <BrowserRouter>        color: 'white', 
+          <Route path="/interview/:sessionId" element={<Interview />} />
 
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">        padding: '12px 24px', 
+          <Route path="/report/:sessionId" element={<Report />} />  const { isRecording } = useInterviewStore();      </p>
+
+          <Route path="*" element={<NotFound />} />
+
+        </Routes>      <button style={{ 
+
+      </div>
+
+    </BrowserRouter>  return (        backgroundColor: '#3b82f6', 
+
+  );
+
+}    <BrowserRouter>        color: 'white', 
+
+
+
+export default App;      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">        padding: '12px 24px', 
 
         {!isRecording && <Navigation />}        border: 'none', 
 
