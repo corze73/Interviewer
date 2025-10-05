@@ -88,6 +88,27 @@ export function Interview() {
     );
   }
 
+  // Handle case where user accessed interview directly without job setup
+  if (!jobData && isInterviewStarted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-6xl mb-4">⚠️</div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Job Setup Required</h1>
+          <p className="text-gray-600 mb-6">
+            To start an interview, you need to set up your job details first. This helps our AI provide relevant questions.
+          </p>
+          <button
+            onClick={() => window.location.href = '/setup'}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
+          >
+            Go to Job Setup
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-8">
