@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useInterviewStore } from '../store/interview';
+import { useMicrophone } from '../hooks/useMicrophone';
+import { useAIInterviewer } from '../hooks/useAIInterviewer';
 
 interface JobData {
   jobTitle: string;
@@ -13,15 +15,28 @@ export function Interview() {
   const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
   const { 
     isConnected, 
-    isRecording, 
     currentQuestion, 
     transcript, 
-    setRecording 
+    aiResponses
   } = useInterviewStore();
 
   const [isLoading, setIsLoading] = useState(true);
   const [jobData, setJobData] = useState<JobData | null>(null);
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
+
+  // Initialize microphone and AI interviewer hooks
+  const { 
+    isRecording, 
+    startRecording, 
+    stopRecording, 
+    error: micError, 
+    audioLevel 
+  } = useMicrophone();
+  
+  const { 
+    startInterview: initializeInterview, 
+    processUserResponse 
+  } = useAIInterviewer(jobData);
 
   useEffect(() => {
     // Load job data from localStorage
@@ -45,18 +60,11 @@ export function Interview() {
     return () => clearTimeout(timer);
   }, [urlSessionId]);
 
-  const toggleRecording = () => {
-    setRecording(!isRecording);
-  };
-
-  const startInterview = () => {
-    if (jobData && !currentQuestion) {
-      // Generate a job-specific opening question
-      const openingQuestion = `Hi! I'm excited to interview you for the ${jobData.jobTitle} position${jobData.company ? ` at ${jobData.company}` : ''}. Let's start with a simple question: Can you tell me about yourself and why you're interested in this role?`;
-      
-      // In a real app, this would be handled by the interview store
-      // For now, we'll just show that the interview is ready to start
-      console.log('Starting interview with question:', openingQuestion);
+  const toggleRecording = async () => {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      await startRecording();
     }
   };
 
@@ -64,11 +72,19 @@ export function Interview() {
   useEffect(() => {
     if (jobData && isInterviewStarted && !currentQuestion) {
       const timer = setTimeout(() => {
-        startInterview();
+        initializeInterview();
       }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [jobData, isInterviewStarted, currentQuestion]);
+  }, [jobData, isInterviewStarted, currentQuestion, initializeInterview]);
+
+  // Process user responses when new transcript is added
+  useEffect(() => {
+    if (transcript.length > 0) {
+      const latestResponse = transcript[transcript.length - 1];
+      processUserResponse(latestResponse);
+    }
+  }, [transcript, processUserResponse]);
 
   if (isLoading) {
     return (
@@ -132,6 +148,22 @@ export function Interview() {
                     ✅ Ready for {jobData.jobTitle} interview
                   </p>
                 )}
+                {isRecording && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-center">
+                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
+                      <span className="text-xs text-red-400">Recording...</span>
+                    </div>
+                    {audioLevel > 0 && (
+                      <div className="mt-1 w-20 h-1 bg-gray-600 rounded mx-auto">
+                        <div 
+                          className="h-full bg-green-400 rounded transition-all duration-100"
+                          style={{ width: `${Math.min(audioLevel * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -139,7 +171,8 @@ export function Interview() {
             <div className="flex justify-center space-x-4">
               <button
                 onClick={toggleRecording}
-                className={`px-6 py-3 rounded-full font-medium transition-colors ${
+                disabled={!jobData || !isInterviewStarted}
+                className={`px-6 py-3 rounded-full font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   isRecording 
                     ? 'bg-red-600 hover:bg-red-700 text-white' 
                     : 'bg-green-600 hover:bg-green-700 text-white'
@@ -148,6 +181,17 @@ export function Interview() {
                 {isRecording ? '⏹️ Stop Recording' : '🎤 Start Recording'}
               </button>
             </div>
+            
+            {/* Error Display */}
+            {micError && (
+              <div className="mt-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-center">
+                <p className="text-red-300 text-sm">⚠️ Microphone Error</p>
+                <p className="text-red-400 text-xs mt-1">{micError}</p>
+                <p className="text-gray-400 text-xs mt-2">
+                  Please check your microphone permissions and try again.
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Chat/Transcript Section */}
@@ -162,16 +206,21 @@ export function Interview() {
             )}
             
             <div className="flex-1 overflow-y-auto space-y-3 mb-4">
-              {transcript.length === 0 ? (
+              {aiResponses.length === 0 && transcript.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
                   {!isInterviewStarted ? (
                     <p>Initializing interview session...</p>
                   ) : !jobData ? (
                     <p>Loading job context...</p>
+                  ) : !currentQuestion ? (
+                    <div>
+                      <p className="text-blue-400 mb-2">🤖 AI is preparing your first question...</p>
+                      <p className="text-sm">Please wait while we analyze your job context.</p>
+                    </div>
                   ) : (
                     <div>
                       <p className="text-green-400 mb-2">🎤 Interview Ready!</p>
-                      <p className="text-sm">Click "Start Recording" to begin your {jobData.jobTitle} interview.</p>
+                      <p className="text-sm">Click "Start Recording" to respond to the AI interviewer.</p>
                       {jobData.company && (
                         <p className="text-xs text-gray-400 mt-1">Position at {jobData.company}</p>
                       )}
@@ -179,12 +228,36 @@ export function Interview() {
                   )}
                 </div>
               ) : (
-                transcript.map((text, index) => (
-                  <div key={index} className="p-3 bg-gray-700 rounded-lg">
-                    <p className="text-sm text-gray-300">You:</p>
-                    <p className="text-white">{text}</p>
-                  </div>
-                ))
+                <div className="space-y-3">
+                  {/* Show conversation history */}
+                  {aiResponses.map((response, index) => (
+                    <div key={`ai-${index}`}>
+                      {/* AI Question */}
+                      <div className="p-3 bg-blue-900/50 rounded-lg">
+                        <p className="text-sm text-blue-300">AI Interviewer:</p>
+                        <p className="text-white">{response}</p>
+                      </div>
+                      
+                      {/* User Response (if available) */}
+                      {transcript[index] && (
+                        <div className="p-3 bg-gray-700 rounded-lg mt-2">
+                          <p className="text-sm text-gray-300">You:</p>
+                          <p className="text-white">{transcript[index]}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  {/* Show if AI is thinking */}
+                  {transcript.length > aiResponses.length - 1 && (
+                    <div className="p-3 bg-purple-900/50 rounded-lg">
+                      <p className="text-sm text-purple-300">AI Interviewer:</p>
+                      <p className="text-gray-300 italic">
+                        <span className="animate-pulse">Thinking about your response...</span>
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             
