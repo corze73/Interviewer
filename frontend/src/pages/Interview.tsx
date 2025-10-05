@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useInterviewStore } from '../store/interview';
-import { useMicrophone } from '../hooks/useMicrophone';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useAIInterviewer } from '../hooks/useAIInterviewer';
 
 interface JobData {
@@ -25,15 +25,16 @@ export function Interview() {
   const [jobData, setJobData] = useState<JobData | null>(null);
   const [isInterviewStarted, setIsInterviewStarted] = useState(false);
 
-  // Initialize microphone and AI interviewer hooks
+  // Initialize speech recognition and AI interviewer hooks
   const { 
-    isRecording, 
-    startRecording, 
-    stopRecording, 
-    error: micError, 
-    audioLevel,
-    requestMicrophonePermission
-  } = useMicrophone();
+    isListening: isRecording, 
+    startListening: startRecording, 
+    stopListening: stopRecording, 
+    error: micError,
+    transcript: liveTranscript,
+    confidence,
+    isSupported: speechSupported
+  } = useSpeechRecognition();
   
   const { 
     startInterview: initializeInterview, 
@@ -64,11 +65,11 @@ export function Interview() {
     return () => clearTimeout(timer);
   }, [urlSessionId]);
 
-  const toggleRecording = async () => {
+  const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
     } else {
-      await startRecording();
+      startRecording();
     }
   };
 
@@ -176,14 +177,17 @@ export function Interview() {
                   <div className="mt-2">
                     <div className="flex items-center justify-center">
                       <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                      <span className="text-xs text-red-400">Recording...</span>
+                      <span className="text-xs text-red-400">Listening...</span>
                     </div>
-                    {audioLevel > 0 && (
-                      <div className="mt-1 w-20 h-1 bg-gray-600 rounded mx-auto">
-                        <div 
-                          className="h-full bg-green-400 rounded transition-all duration-100"
-                          style={{ width: `${Math.min(audioLevel * 100, 100)}%` }}
-                        ></div>
+                    {liveTranscript && (
+                      <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-gray-300 max-w-xs">
+                        <p className="text-blue-400 mb-1">Live: </p>
+                        <p>"{liveTranscript}"</p>
+                        {confidence > 0 && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Confidence: {Math.round(confidence * 100)}%
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -195,15 +199,20 @@ export function Interview() {
             <div className="flex justify-center space-x-4">
               <button
                 onClick={toggleRecording}
-                disabled={!jobData || !isInterviewStarted}
+                disabled={!jobData || !isInterviewStarted || !speechSupported}
                 className={`px-6 py-3 rounded-full font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
                   isRecording 
                     ? 'bg-red-600 hover:bg-red-700 text-white' 
                     : 'bg-green-600 hover:bg-green-700 text-white'
                 }`}
               >
-                {isRecording ? '⏹️ Stop Recording' : '🎤 Start Recording'}
+                {isRecording ? '⏹️ Stop Listening' : '🎤 Start Speaking'}
               </button>
+              {!speechSupported && (
+                <p className="text-xs text-yellow-400 mt-2">
+                  Speech recognition not supported. Please use Chrome, Edge, or Safari.
+                </p>
+              )}
             </div>
             
             {/* Error Display */}
@@ -244,12 +253,13 @@ export function Interview() {
                   <button
                     onClick={async () => {
                       try {
-                        const success = await requestMicrophonePermission();
-                        if (success) {
-                          window.location.reload();
-                        } else {
-                          alert('Please allow microphone access in your browser settings and try again.');
-                        }
+                        // Try to start listening to trigger permission request
+                        startRecording();
+                        setTimeout(() => {
+                          if (!speechSupported) {
+                            alert('Speech recognition is not supported in this browser. Please use Chrome, Edge, or Safari.');
+                          }
+                        }, 1000);
                       } catch (err) {
                         console.error('Permission request failed:', err);
                         alert('Failed to request permissions. Please check your browser settings.');
