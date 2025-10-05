@@ -315,9 +315,9 @@ export function Interview() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Show conversation history */}
+                  {/* Show conversation history - interleaved AI questions and user responses */}
                   {aiResponses.map((response, index) => (
-                    <div key={`ai-${index}`}>
+                    <div key={`conversation-${index}`} className="space-y-2">
                       {/* AI Question */}
                       <div className="p-3 bg-blue-900/50 rounded-lg">
                         <p className="text-sm text-blue-300">AI Interviewer:</p>
@@ -326,11 +326,19 @@ export function Interview() {
                       
                       {/* User Response (if available) */}
                       {transcript[index] && (
-                        <div className="p-3 bg-gray-700 rounded-lg mt-2">
-                          <p className="text-sm text-gray-300">You:</p>
+                        <div className="p-3 bg-green-900/30 rounded-lg">
+                          <p className="text-sm text-green-300">You:</p>
                           <p className="text-white">{transcript[index]}</p>
                         </div>
                       )}
+                    </div>
+                  ))}
+                  
+                  {/* Show any remaining user responses that don't have AI follow-ups yet */}
+                  {transcript.slice(aiResponses.length).map((userResponse, index) => (
+                    <div key={`user-extra-${index}`} className="p-3 bg-green-900/30 rounded-lg">
+                      <p className="text-sm text-green-300">You:</p>
+                      <p className="text-white">{userResponse}</p>
                     </div>
                   ))}
                   
@@ -341,6 +349,24 @@ export function Interview() {
                       <p className="text-gray-300 italic">
                         <span className="animate-pulse">Thinking about your response...</span>
                       </p>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Debug info - remove this in production */}
+              {(transcript.length > 0 || liveTranscript) && (
+                <div className="mt-4 p-2 bg-gray-700/50 rounded text-xs">
+                  <p className="text-gray-400">Debug - Transcript Count: {transcript.length}</p>
+                  {liveTranscript && (
+                    <p className="text-gray-400">Live: "{liveTranscript}" (confidence: {Math.round(confidence * 100)}%)</p>
+                  )}
+                  {transcript.length > 0 && (
+                    <div className="text-gray-400">
+                      <p>Stored responses:</p>
+                      {transcript.map((item, idx) => (
+                        <p key={idx} className="ml-2">• {item}</p>
+                      ))}
                     </div>
                   )}
                 </div>
