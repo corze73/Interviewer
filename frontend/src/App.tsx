@@ -17,6 +17,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/interview/:sessionId" element={<Interview />} />
           <Route path="/report/:sessionId" element={<Report />} />
+          {/* Demo routes for navigation */}
+          <Route path="/interview" element={<Interview />} />
+          <Route path="/report" element={<Report />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

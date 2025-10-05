@@ -3,7 +3,10 @@ import { Link, useLocation } from 'react-router-dom';
 export function Navigation() {
   const location = useLocation();
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/') return location.pathname === path;
+    return location.pathname.startsWith(path);
+  };
 
   return (
     <nav className="bg-white shadow-sm border-b">
@@ -27,7 +30,7 @@ export function Navigation() {
               Home
             </Link>
             <Link
-              to="/interview"
+              to="/interview/demo"
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive('/interview') 
                   ? 'text-blue-600 bg-blue-50' 
@@ -37,7 +40,7 @@ export function Navigation() {
               Interview
             </Link>
             <Link
-              to="/report"
+              to="/report/demo"
               className={`px-3 py-2 rounded-md text-sm font-medium ${
                 isActive('/report') 
                   ? 'text-blue-600 bg-blue-50' 
