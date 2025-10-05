@@ -23,7 +23,12 @@ export function useMicrophone(): UseMicrophoneReturn {
     try {
       setError(null);
       
-      // Request microphone access
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Your browser does not support microphone access. Please use a modern browser like Chrome, Firefox, or Safari.');
+      }
+      
+      // Request microphone access with better error handling
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -88,7 +93,33 @@ export function useMicrophone(): UseMicrophoneReturn {
       
     } catch (err) {
       console.error('Error starting recording:', err);
-      setError(err instanceof Error ? err.message : 'Failed to start recording');
+      let errorMessage = 'Failed to start recording';
+      
+      if (err instanceof DOMException) {
+        switch (err.name) {
+          case 'NotAllowedError':
+            errorMessage = 'Microphone access denied. Please click the microphone icon in your browser\'s address bar and allow access, then try again.';
+            break;
+          case 'NotFoundError':
+            errorMessage = 'No microphone found. Please connect a microphone and try again.';
+            break;
+          case 'NotReadableError':
+            errorMessage = 'Microphone is already in use by another application. Please close other apps using the microphone and try again.';
+            break;
+          case 'OverconstrainedError':
+            errorMessage = 'Microphone constraints could not be satisfied. Please try again.';
+            break;
+          case 'SecurityError':
+            errorMessage = 'Microphone access blocked due to security restrictions. Please use HTTPS or localhost.';
+            break;
+          default:
+            errorMessage = `Microphone error: ${err.message}`;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     }
   }, [setRecording, addTranscript]);
 

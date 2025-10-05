@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useInterviewStore } from '../store/interview';
+import { useTextToSpeech } from './useTextToSpeech';
 
 interface JobData {
   jobTitle: string;
@@ -14,6 +15,8 @@ export function useAIInterviewer(jobData: JobData | null) {
     setCurrentQuestion, 
     addAIResponse
   } = useInterviewStore();
+  
+  const { speak, isSpeaking } = useTextToSpeech();
 
   const generateInitialQuestion = useCallback(() => {
     if (!jobData) return;
@@ -27,6 +30,11 @@ export function useAIInterviewer(jobData: JobData | null) {
     const question = initialQuestions[Math.floor(Math.random() * initialQuestions.length)];
     setCurrentQuestion(question);
     addAIResponse(question);
+    
+    // Speak the question
+    setTimeout(() => {
+      speak(question).catch(console.error);
+    }, 500); // Small delay to ensure UI is updated
   }, [jobData, setCurrentQuestion, addAIResponse]);
 
   const generateFollowUpQuestion = useCallback((userResponse: string) => {
@@ -38,6 +46,11 @@ export function useAIInterviewer(jobData: JobData | null) {
     
     setCurrentQuestion(question);
     addAIResponse(question);
+    
+    // Speak the follow-up question
+    setTimeout(() => {
+      speak(question).catch(console.error);
+    }, 500);
   }, [jobData, setCurrentQuestion, addAIResponse]);
 
   const startInterview = useCallback(() => {
@@ -59,7 +72,8 @@ export function useAIInterviewer(jobData: JobData | null) {
   return {
     startInterview,
     processUserResponse,
-    currentQuestion
+    currentQuestion,
+    isSpeaking
   };
 }
 

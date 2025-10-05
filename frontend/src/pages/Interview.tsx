@@ -36,7 +36,8 @@ export function Interview() {
   
   const { 
     startInterview: initializeInterview, 
-    processUserResponse 
+    processUserResponse,
+    isSpeaking: aiIsSpeaking
   } = useAIInterviewer(jobData);
 
   useEffect(() => {
@@ -162,6 +163,14 @@ export function Interview() {
                     ✅ Ready for {jobData.jobTitle} interview
                   </p>
                 )}
+                {aiIsSpeaking && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-center">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2"></div>
+                      <span className="text-xs text-blue-400">AI Speaking...</span>
+                    </div>
+                  </div>
+                )}
                 {isRecording && (
                   <div className="mt-2">
                     <div className="flex items-center justify-center">
@@ -201,9 +210,29 @@ export function Interview() {
               <div className="mt-4 p-3 bg-red-900/50 border border-red-500 rounded-lg text-center">
                 <p className="text-red-300 text-sm">⚠️ Microphone Error</p>
                 <p className="text-red-400 text-xs mt-1">{micError}</p>
-                <p className="text-gray-400 text-xs mt-2">
-                  Please check your microphone permissions and try again.
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="text-gray-400 text-xs">
+                    To fix this issue:
+                  </p>
+                  <ul className="text-xs text-gray-400 text-left space-y-1">
+                    <li>1. Click the microphone icon 🎤 in your browser's address bar</li>
+                    <li>2. Select "Allow" for microphone access</li>
+                    <li>3. Refresh this page and try again</li>
+                  </ul>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.mediaDevices.getUserMedia({ audio: true });
+                        window.location.reload();
+                      } catch (err) {
+                        console.error('Permission request failed:', err);
+                      }
+                    }}
+                    className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                  >
+                    Request Microphone Access
+                  </button>
+                </div>
               </div>
             )}
           </div>
