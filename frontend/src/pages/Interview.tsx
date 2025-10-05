@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useInterviewStore } from '../store/interview';
 import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import { useAIInterviewer } from '../hooks/useAIInterviewer';
+import { InterviewerAvatar } from '../components/InterviewerAvatar';
 
 interface JobData {
   jobTitle: string;
@@ -14,7 +15,6 @@ interface JobData {
 export function Interview() {
   const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
   const { 
-    isConnected, 
     currentQuestion, 
     transcript, 
     aiResponses,
@@ -69,6 +69,8 @@ export function Interview() {
   const toggleRecording = () => {
     if (isRecording) {
       stopRecording();
+      // Trigger response processing when user manually stops recording
+      setShouldProcessResponse(true);
     } else {
       startRecording();
     }
@@ -96,22 +98,20 @@ export function Interview() {
     }
   }, [jobData, isInterviewStarted]);
 
-  // Process user responses when new transcript is added
+  // Process user responses only when manually stopped (not automatically)
+  const [shouldProcessResponse, setShouldProcessResponse] = useState(false);
+  
   useEffect(() => {
-    if (transcript.length > 0) {
+    if (shouldProcessResponse && transcript.length > 0) {
       const latestResponse = transcript[transcript.length - 1];
       // Only process if the response has some meaningful content
       if (latestResponse.trim().length > 2) {
+        console.log('Processing user response:', latestResponse);
         processUserResponse(latestResponse);
-        // Automatically stop recording after processing the response
-        if (isRecording) {
-          setTimeout(() => {
-            stopRecording();
-          }, 1000); // Give a small delay to ensure the response is fully processed
-        }
+        setShouldProcessResponse(false); // Reset the flag
       }
     }
-  }, [transcript, processUserResponse, isRecording, stopRecording]);
+  }, [transcript, processUserResponse, shouldProcessResponse]);
 
   if (isLoading) {
     return (
@@ -157,53 +157,30 @@ export function Interview() {
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-screen">
           
-          {/* Avatar Video Section */}
+          {/* Professional Interviewer Avatar Section */}
           <div className="lg:col-span-2">
-            <div className="bg-black rounded-lg aspect-video flex items-center justify-center mb-4">
-              <div className="text-center">
-                <div className="w-32 h-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <span className="text-4xl">🤖</span>
-                </div>
-                <p className="text-gray-300">AI Interviewer Avatar</p>
-                <p className="text-sm text-gray-500">
-                  {!isInterviewStarted ? 'Initializing...' : 
-                   !jobData ? 'Loading job context...' :
-                   isConnected ? 'Ready to interview' : 'Connecting...'}
-                </p>
-                {jobData && isInterviewStarted && (
-                  <p className="text-xs text-green-400 mt-1">
-                    ✅ Ready for {jobData.jobTitle} interview
-                  </p>
-                )}
-                {aiIsSpeaking && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse mr-2"></div>
-                      <span className="text-xs text-blue-400">AI Speaking...</span>
-                    </div>
-                  </div>
-                )}
-                {isRecording && (
-                  <div className="mt-2">
-                    <div className="flex items-center justify-center">
-                      <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse mr-2"></div>
-                      <span className="text-xs text-red-400">Listening...</span>
-                    </div>
-                    {liveTranscript && (
-                      <div className="mt-2 p-2 bg-gray-800 rounded text-xs text-gray-300 max-w-xs">
-                        <p className="text-blue-400 mb-1">Live: </p>
-                        <p>"{liveTranscript}"</p>
-                        {confidence > 0 && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Confidence: {Math.round(confidence * 100)}%
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+            <div className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg p-8 mb-4 min-h-[500px] flex items-center justify-center">
+              <InterviewerAvatar 
+                isSpeaking={aiIsSpeaking}
+                isListening={isRecording}
+                className="w-full"
+              />
             </div>
+            
+            {/* Live Transcript Display */}
+            {isRecording && liveTranscript && (
+              <div className="bg-gray-800 rounded-lg p-4 mb-4">
+                <div className="text-center">
+                  <p className="text-sm text-green-400 mb-2">🎤 You're speaking:</p>
+                  <p className="text-white text-lg italic">"{liveTranscript}"</p>
+                  {confidence > 0 && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      Confidence: {Math.round(confidence * 100)}%
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* Controls */}
             <div className="flex flex-col items-center space-y-4">
@@ -211,23 +188,23 @@ export function Interview() {
               <div className="text-center">
                 {aiIsSpeaking ? (
                   <div className="text-blue-400 text-sm">
-                    <div className="animate-pulse">🤖 AI is speaking...</div>
+                    <div className="animate-pulse">🗣️ Your interviewer is speaking...</div>
                   </div>
                 ) : aiIsProcessing ? (
                   <div className="text-purple-400 text-sm">
-                    <div className="animate-pulse">🧠 AI is thinking about your response...</div>
+                    <div className="animate-pulse">💭 Preparing next question...</div>
                   </div>
                 ) : currentQuestion && !isRecording ? (
                   <div className="text-green-400 text-sm">
-                    ✅ Ready for your response
+                    ✅ Your turn to speak
                   </div>
                 ) : isRecording ? (
                   <div className="text-red-400 text-sm">
-                    <div className="animate-pulse">🎤 Listening to your response...</div>
+                    <div className="animate-pulse">👂 Listening carefully...</div>
                   </div>
                 ) : (
                   <div className="text-gray-400 text-sm">
-                    Waiting for interview to start...
+                    Interview starting soon...
                   </div>
                 )}
               </div>
@@ -242,19 +219,19 @@ export function Interview() {
                     : 'bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-500/30'
                 } ${isRecording ? 'animate-pulse' : ''}`}
               >
-                {isRecording ? '⏹️ Stop & Submit Response' : '🎤 Click to Respond'}
+                {isRecording ? '✋ Finished Speaking' : '🗣️ Start My Response'}
               </button>
 
               {/* Help text */}
               <div className="text-center text-xs text-gray-400 max-w-md">
                 {aiIsProcessing ? (
-                  <p>The AI is analyzing your response and preparing the next question. Please wait a moment.</p>
+                  <p>Your interviewer is thinking about your response and preparing the next question. Please wait a moment.</p>
                 ) : currentQuestion && !aiIsSpeaking ? (
-                  <p>Click the button above to start recording your response. Speak clearly and click again when finished.</p>
+                  <p>Ready to answer? Click the button to start speaking. Click again when you're done with your response.</p>
                 ) : aiIsSpeaking ? (
-                  <p>Please wait for the AI to finish speaking before responding.</p>
+                  <p>Your interviewer is speaking. Please listen and wait for them to finish.</p>
                 ) : (
-                  <p>Wait for the interview to begin and the AI to ask the first question.</p>
+                  <p>Your interview is starting. Your interviewer will ask the first question shortly.</p>
                 )}
               </div>
 
